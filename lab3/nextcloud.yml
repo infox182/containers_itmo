@@ -1,15 +1,5 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  name: nextcloud-secret
-  labels:
-    app: nextcloud
-type: Opaque
-stringData:
-  NEXTCLOUD_ADMIN_PASSWORD: "my_pass123"
----
-kind: Deployment
 apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: nextcloud
   labels:
@@ -25,50 +15,43 @@ spec:
         app: nextcloud
     spec:
       containers:
-      - name: nextcloud
-        image: docker.io/nextcloud:stable-apache
-        resources:
-          limits:
-            cpu: 500m
-            memory: 256Mi
-          requests:
-            cpu: 250m
-            memory: 128Mi
-        ports:
-        - name: http
-          containerPort: 80
-          protocol: TCP
-        env:
-        - name: NEXTCLOUD_UPDATE
-          value: '1'
-        - name: ALLOW_EMPTY_PASSWORD
-          value: 'yes'
-        - name: POSTGRES_HOST
-          value: postgres-service
-        - name: POSTGRES_DB
-          valueFrom:
-            configMapKeyRef:
-              name: postgres-configmap
-              key: POSTGRES_DB
-        - name: NEXTCLOUD_TRUSTED_DOMAINS
-          value: "127.0.0.1"
-        - name: POSTGRES_USER
-          valueFrom:
-            configMapKeyRef:
-              name: postgres-configmap
-              key: POSTGRES_USER
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            configMapKeyRef:
-              name: postgres-configmap
-              key: POSTGRES_PASSWORD
-        - name: NEXTCLOUD_ADMIN_USER
-          value: my_user
-        - name: NEXTCLOUD_ADMIN_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: nextcloud-secret
-              key: NEXTCLOUD_ADMIN_PASSWORD
-        imagePullPolicy: IfNotPresent
+        - name: nextcloud
+          image: docker.io/nextcloud:stable-apache
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 250m
+              memory: 128Mi
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: nextcloud-configmap
+            - secretRef:
+                name: nextcloud-secret
+            - configMapRef:
+                name: postgres-configmap
+            - secretRef:
+                name: postgres-secret
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 240
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
       restartPolicy: Always
       dnsPolicy: ClusterFirst
