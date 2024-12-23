@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-configmap
+  labels:
+    app: postgres
+data:
+  POSTGRES_DB: "my_db"
+  POSTGRES_USER: "my_user"
+  POSTGRES_PASSWORD: "my_pass123"
